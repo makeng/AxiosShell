@@ -1,0 +1,17 @@
+{
+  "name": "utils-axiosLike-js",
+  "description": "fetch 类网络请求的封装库",
+  "author": "mazhaokeng",
+  "version": "0.0.0",
+  "private": true,
+  "main": "/src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.orviboserver.com:orvibo-npm/fetch-hilinkrequest-js.git"
+  },
+  "license": "ISC",
+  "devDependencies": {
+    "babel-preset-env": "^1.7.0",
+    "babel-register": "^6.26.0"
+  }
+}
