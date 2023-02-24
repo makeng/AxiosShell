@@ -4,7 +4,7 @@
 * date:2020-6-9
 * ---------------------------------------------------------------------------------------- */
 
-class Interceptor {
+class InterceptorManager {
   constructor() {
     this.handlers = []
   }
@@ -43,4 +43,4 @@ class Interceptor {
   }
 }
 
-export default Interceptor
+export default InterceptorManager

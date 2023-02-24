@@ -4,7 +4,7 @@
 * date:2020-06-09
 * ---------------------------------------------------------------------------------------- */
 
-import Interceptor from './Interceptor'
+import InterceptorManager from './InterceptorManager'
 import { deepMerge } from './utils/merge'
 
 class AxiosLike {
@@ -18,8 +18,8 @@ class AxiosLike {
     }
     // 拦截器桥接
     this.interceptors = {
-      request: new Interceptor(),
-      response: new Interceptor()
+      request: new InterceptorManager(),
+      response: new InterceptorManager()
     }
   }
 
@@ -39,10 +39,14 @@ class AxiosLike {
    */
   _requestWithInterceptors(config) {
     config = deepMerge(this.defaults, config) // 配置合并
-    // 挂接拦截器
-    const createInterceptorsChain = request => {
+    /**
+     * 挂接拦截器
+     * @param middle 中间的 promise
+     * @returns {*[]}
+     */
+    const createInterceptorsChain = middle => {
       // 需要构建 [fulfilled,rejected,fulfilled,rejected...] 的队列
-      const chain = [request, undefined]
+      const chain = [middle, undefined]
 
       // 创建请求链数组
       this.interceptors.request.forEach(interceptor => {
@@ -53,31 +57,30 @@ class AxiosLike {
       })
       return chain
     }
-    // 超时的 Promise
-    const createTimeoutRace = (request, timeout) => {
+    /**
+     * 超时的 Promise
+     * @param request 请求
+     * @param countdown 倒计时
+     * @returns {Promise<Awaited<unknown>>}
+     */
+    const createTimeoutRace = (request, countdown) => {
       const createTimeoutPromise = timeout => new Promise((resolve, reject) => {
         setTimeout(() => {
-          let timeoutErrorMessage = 'timeout of ' + timeout + 'ms exceeded'
+          let timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`
           reject({
             status: 408, // 自己根据网络错误码写的，并非真的服务器报的
             message: timeoutErrorMessage
           })
         }, timeout)
       })
-      return Promise.race([request, createTimeoutPromise(timeout)]).catch(err => {
+      return Promise.race([request, createTimeoutPromise(countdown)]).catch(err => {
         console.error(err)
         return err
       })
     }
 
     // 核心请求
-    let createRequest = () => this.request(config).then(res => {
-      return { // TODO:增加自定义的网络状态和信息
-        data: res,
-        status: 0,
-        message: ''
-      }
-    })
+    let createRequest = () => this.request(config)
     // 带上超时
     const { timeout } = config
     const requestGetData = timeout
@@ -107,7 +110,7 @@ class AxiosLike {
     const nextConfig = deepMerge(config, { url, data, method })
     return this._requestWithInterceptors(nextConfig)
   }
-  AxiosLike.prototype[method] = createRequest()
+  AxiosLike.prototype[method] = createRequest
 })
 
 const axiosLike = new AxiosLike()
