@@ -12,8 +12,8 @@ import { isObject } from './type'
  * @param thisArg
  * @returns {function(): *}
  */
-function bind (fn, thisArg) {
-  return function wrap () {
+function bind(fn, thisArg) {
+  return function wrap() {
     const args = new Array(arguments.length)
     for (let i = 0; i < args.length; i++) {
       args[i] = arguments[i]
@@ -26,10 +26,10 @@ function bind (fn, thisArg) {
  * 深合并
  * @param objList 对象列表
  */
-function deepMerge (...objList) {
+function deepMerge(...objList) {
   const res = {}
 
-  function assignValue (obj) {
+  function assignValue(obj) {
     for (const key in obj) {
       if (obj.hasOwnProperty(key)) {
         const propValue = obj[key]

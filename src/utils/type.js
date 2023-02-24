@@ -6,19 +6,19 @@
 
 const { toString } = Object.prototype
 
-function isObject (x) {
+function isObject(x) {
   return !!x && toString.call(x) === '[object Object]'
 }
 
-function isArray (x) {
+function isArray(x) {
   return toString.call(x) === '[object Array]'
 }
 
-function isString (x) {
+function isString(x) {
   return !!x && toString.call(x) === '[object String]'
 }
 
-function isFunction (x) {
+function isFunction(x) {
   return toString.call(x) === '[object Function]'
 }
 

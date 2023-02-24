@@ -8,7 +8,7 @@ import Interceptor from './Interceptor'
 import { deepMerge } from './utils/merge'
 
 class AxiosLike {
-  constructor (instanceConfig = {}) {
+  constructor(instanceConfig = {}) {
     const { request } = instanceConfig
 
     this.defaults = instanceConfig
@@ -28,15 +28,16 @@ class AxiosLike {
    * @param defaultConfig 默认配置
    * @returns {AxiosLike}
    */
-  create (defaultConfig) {
-    return new AxiosLike(deepMerge(this.defaults, { request: this.request }, defaultConfig))
+  create(defaultConfig) {
+    const config = deepMerge(this.defaults, { request: this.request }, defaultConfig)
+    return new AxiosLike(config)
   }
 
   /**
    * 带拦截器的请求
    * @private
    */
-  _requestWithInterceptors (config) {
+  _requestWithInterceptors(config) {
     config = deepMerge(this.defaults, config) // 配置合并
     // 挂接拦截器
     const createInterceptorsChain = request => {
@@ -95,11 +96,18 @@ class AxiosLike {
 
 // 增加请求方法
 ['get', 'post', 'head', 'options', 'put', 'delete', 'trace', 'connect'].forEach(method => {
-  AxiosLike.prototype[method] = function (url = '', data = {}, config) {
-    return this._requestWithInterceptors(
-      deepMerge(config, { url, data, method })
-    )
+  /**
+   * 创建一个请求，带有默认参数，并设置请求方法
+   * @param url
+   * @param data
+   * @param config
+   * @returns {Promise<{}>}
+   */
+  function createRequest(url = '', data = {}, config) {
+    const nextConfig = deepMerge(config, { url, data, method })
+    return this._requestWithInterceptors(nextConfig)
   }
+  AxiosLike.prototype[method] = createRequest()
 })
 
 const axiosLike = new AxiosLike()

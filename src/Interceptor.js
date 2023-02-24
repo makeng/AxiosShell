@@ -5,7 +5,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 class Interceptor {
-  constructor () {
+  constructor() {
     this.handlers = []
   }
 
@@ -13,7 +13,7 @@ class Interceptor {
    * 迭代器
    * @param fn
    */
-  forEach (fn) {
+  forEach(fn) {
     return this.handlers.forEach(fn)
   }
 
@@ -23,7 +23,7 @@ class Interceptor {
    * @param rejected Promise 的失败处理函数
    * @returns {number} id，用于 eject 删除的序号
    */
-  use (fulfilled, rejected) {
+  use(fulfilled, rejected) {
     this.handlers.push({
       fulfilled,
       rejected
@@ -36,7 +36,7 @@ class Interceptor {
    * 删除拦截器
    * @param id 在 handlers 中的序号
    */
-  eject (id) {
+  eject(id) {
     if (this.handlers[id]) {
       this.handlers[id] = null
     }

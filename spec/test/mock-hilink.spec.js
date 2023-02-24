@@ -18,10 +18,10 @@ import axiosLike from '../../src'
       'param': {},
     }
  */
-describe('axiosLike-仿真华为接口测试', function () {
+describe('axiosLike-仿真华为 hilink 接口测试', function () {
 
   // 请求仿真函数:接收所有 axios 参数形式的 config，转变成 hilnik 需要的
-  function request (config) {
+  function request(config) {
     const { baseURL, method, url, data } = config
     const newConfig = {
       domain: baseURL,
@@ -43,7 +43,7 @@ describe('axiosLike-仿真华为接口测试', function () {
 
   it('发送请求并接收结果', done => {
     hilinkAxios.get('/channel', { params: { name: 'sport' } }).then(res => {
-      console.log('仿真华为请求结果', res)
+      console.log('仿真 hilink 请求结果', res)
       done(res)
     }).catch(err => {
       console.warn('请求失败', err)
