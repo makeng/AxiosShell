@@ -4,12 +4,12 @@
 * date:2020-06-09
 * ---------------------------------------------------------------------------------------- */
 
-import axiosLike from '../../src'
+import axiosShell from '../../src'
 
-describe('axiosLike-功能测试', function () {
+describe('axiosShell-功能测试', function () {
 
   const headers = { 'X-Custom-Header': 'foobar' }
-  const testReq = axiosLike.create({
+  const testReq = axiosShell.create({
     baseURL: 'https://some-domain.com/api/',
     headers,
     request: () => Promise.resolve('foo')
@@ -59,7 +59,7 @@ describe('axiosLike-功能测试', function () {
   })
 
   it('请求超时会失败', done => {
-    const delayReq = axiosLike.create({
+    const delayReq = axiosShell.create({
       baseURL: 'https://some-domain.com/api/',
       timeout: 100,
       request: () => {

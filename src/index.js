@@ -7,7 +7,7 @@
 import InterceptorManager from './InterceptorManager'
 import { deepMerge } from './utils/merge'
 
-class AxiosLike {
+class AxiosShell {
   constructor(instanceConfig = {}) {
     const { request } = instanceConfig
 
@@ -26,11 +26,11 @@ class AxiosLike {
   /**
    * 创建
    * @param defaultConfig 默认配置
-   * @returns {AxiosLike}
+   * @returns {AxiosShell}
    */
   create(defaultConfig) {
     const config = deepMerge(this.defaults, { request: this.request }, defaultConfig)
-    return new AxiosLike(config)
+    return new AxiosShell(config)
   }
 
   /**
@@ -110,9 +110,9 @@ class AxiosLike {
     const nextConfig = deepMerge(config, { url, data, method })
     return this._requestWithInterceptors(nextConfig)
   }
-  AxiosLike.prototype[method] = createRequest
+  AxiosShell.prototype[method] = createRequest
 })
 
-const axiosLike = new AxiosLike()
+const axiosShell = new AxiosShell()
 
-export default axiosLike
+export default axiosShell

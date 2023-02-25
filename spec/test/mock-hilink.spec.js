@@ -4,7 +4,7 @@
 * date:2019-06-10
 * ---------------------------------------------------------------------------------------- */
 
-import axiosLike from '../../src'
+import axiosShell from '../../src'
 
 /**
  * 输入是 axios 一样的方法：
@@ -18,7 +18,7 @@ import axiosLike from '../../src'
       'param': {},
     }
  */
-describe('axiosLike-仿真华为 hilink 接口测试', function () {
+describe('axiosShell-仿真华为 hilink 接口测试', function () {
 
   // 请求仿真函数:接收所有 axios 参数形式的 config，转变成 hilnik 需要的
   function request(config) {
@@ -36,7 +36,7 @@ describe('axiosLike-仿真华为 hilink 接口测试', function () {
     })
   }
 
-  const hilinkAxios = axiosLike.create({
+  const hilinkAxios = axiosShell.create({
     baseURL: 'http://homemate2.orvibo.com',
     request,
   })
