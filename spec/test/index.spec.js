@@ -12,7 +12,7 @@ describe('axiosShell-功能测试', function () {
   const testReq = axiosShell.create({
     baseURL: 'https://some-domain.com/api/',
     headers,
-    request: () => Promise.resolve('foo')
+    adapter: () => Promise.resolve('foo'),
   })
 
   it('创建和配置', () => {
@@ -37,7 +37,7 @@ describe('axiosShell-功能测试', function () {
       error => {
         console.log('request拦截错误')
         return Promise.reject(error)
-      }
+      },
     )
     testReq.interceptors.response.use(
       res => {
@@ -48,7 +48,7 @@ describe('axiosShell-功能测试', function () {
       error => {
         console.log('request拦截错误')
         return Promise.reject(error)
-      }
+      },
     )
 
     testReq.get().then(config => {
@@ -62,13 +62,13 @@ describe('axiosShell-功能测试', function () {
     const delayReq = axiosShell.create({
       baseURL: 'https://some-domain.com/api/',
       timeout: 100,
-      request: () => {
+      adapter: () => {
         return new Promise((resolve, reject) => {
           setTimeout(() => {
             resolve('delay and resolve')
           }, 200)
         })
-      }
+      },
     })
 
     delayReq.get().then(res => {

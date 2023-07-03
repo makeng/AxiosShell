@@ -14,7 +14,7 @@
 ### 资料
 
 - 代码设计解读：[【util-axiosShell】代码解读](https://www.yuque.com/orvibo/paene9/clyzgi)
-  - 设计基于 Axios，只是把 HTTP 请求部分的功能剔除，传入 request 属性代替这部分
+  - 设计基于 Axios，只是把 HTTP 请求部分的功能剔除，传入 adapter 属性代替这部分
   - 如果对项目进行了更新，请更新文章，维持良好的设计素质
 
 

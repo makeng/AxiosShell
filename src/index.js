@@ -9,12 +9,12 @@ import { deepMerge } from './utils/merge';
 
 class AxiosShell {
   constructor(instanceConfig = {}) {
-    const { request } = instanceConfig;
+    const { adapter } = instanceConfig;
 
     this.defaults = instanceConfig;
     // 一定要传入实际请求的方法
-    if (request) {
-      this.request = request;
+    if (adapter) {
+      this.adapter = adapter;
     }
     // 拦截器桥接
     this.interceptors = {
@@ -29,7 +29,7 @@ class AxiosShell {
    * @returns {AxiosShell}
    */
   create(defaultConfig) {
-    const config = deepMerge(this.defaults, { request: this.request }, defaultConfig);
+    const config = deepMerge(this.defaults, { adapter: this.adapter }, defaultConfig);
     return new AxiosShell(config);
   }
 
@@ -41,11 +41,11 @@ class AxiosShell {
     config = deepMerge(this.defaults, config); // 配置合并
     /**
      * 超时的 Promise
-     * @param request 请求
+     * @param adapter 请求
      * @param countdown 倒计时
      * @returns {Promise<Awaited<unknown>>}
      */
-    const createTimeoutRace = (request, countdown) => {
+    const createTimeoutRace = (adapter, countdown) => {
       const createTimeoutPromise = timeout =>
         new Promise((resolve, reject) => {
           setTimeout(() => {
@@ -56,7 +56,7 @@ class AxiosShell {
             });
           }, timeout);
         });
-      return Promise.race([request, createTimeoutPromise(countdown)]).catch(error => {
+      return Promise.race([adapter, createTimeoutPromise(countdown)]).catch(error => {
         !error.status && (error.status = 500);
         return Promise.reject(error);
       });
@@ -80,7 +80,7 @@ class AxiosShell {
       return chain;
     };
     // 核心请求
-    let createRequest = () => this.request(config);
+    let createRequest = () => this.adapter(config);
     // 带上超时
     const { timeout } = config;
     const requestGetData = timeout

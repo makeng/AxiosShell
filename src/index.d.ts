@@ -9,15 +9,15 @@ type AxiosRequest = Record<Method, AxiosRequestHandler>;
 //config 类型
 type AxiosRequestConfig = Partial<{
   //注入实际调用网络的方法
-  request: (...args: any[]) => Promise<any>;
+  adapter: (...args: any[]) => Promise<any>;
   timeout: number;
   [k: string]: any;
 }>;
 
 declare class AxiosShell implements AxiosRequest {
   defaults: Obj;
-  request: (...args: any[]) => Promise<any>;
-  interceptors: Record<'request' | 'response', InterceptorManager>;
+  adapter: (...args: any[]) => Promise<any>;
+  interceptors: Record<'adapter' | 'response', InterceptorManager>;
   constructor(instanceConfig: AxiosRequestConfig);
   create(defaultConfig: AxiosRequestConfig): AxiosShell;
   get<R>(url: string, data?: Obj, config?: Obj): Promise<R>;
