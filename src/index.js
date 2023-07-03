@@ -1,26 +1,26 @@
 /* ---------------------------------------------------------------------------------------
-* about:主文件，导出一个类。更多细节可以参考 Axios 源码。
-* author:马兆铿（810768333@qq.com）
-* date:2020-06-09
-* ---------------------------------------------------------------------------------------- */
+ * about:主文件，导出一个类。更多细节可以参考 Axios 源码。
+ * author:马兆铿（810768333@qq.com）
+ * date:2020-06-09
+ * ---------------------------------------------------------------------------------------- */
 
-import InterceptorManager from './InterceptorManager'
-import { deepMerge } from './utils/merge'
+import InterceptorManager from './InterceptorManager';
+import { deepMerge } from './utils/merge';
 
 class AxiosShell {
   constructor(instanceConfig = {}) {
-    const { request } = instanceConfig
+    const { request } = instanceConfig;
 
-    this.defaults = instanceConfig
+    this.defaults = instanceConfig;
     // 一定要传入实际请求的方法
     if (request) {
-      this.request = request
+      this.request = request;
     }
     // 拦截器桥接
     this.interceptors = {
       request: new InterceptorManager(),
-      response: new InterceptorManager()
-    }
+      response: new InterceptorManager(),
+    };
   }
 
   /**
@@ -29,8 +29,8 @@ class AxiosShell {
    * @returns {AxiosShell}
    */
   create(defaultConfig) {
-    const config = deepMerge(this.defaults, { request: this.request }, defaultConfig)
-    return new AxiosShell(config)
+    const config = deepMerge(this.defaults, { request: this.request }, defaultConfig);
+    return new AxiosShell(config);
   }
 
   /**
@@ -38,25 +38,7 @@ class AxiosShell {
    * @private
    */
   _requestWithInterceptors(config) {
-    config = deepMerge(this.defaults, config) // 配置合并
-    /**
-     * 挂接拦截器
-     * @param middle 中间的 promise
-     * @returns {*[]}
-     */
-    const createInterceptorsChain = middle => {
-      // 需要构建 [fulfilled,rejected,fulfilled,rejected...] 的队列
-      const chain = [middle, undefined]
-
-      // 创建请求链数组
-      this.interceptors.request.forEach(interceptor => {
-        chain.unshift(interceptor.fulfilled, interceptor.rejected)
-      })
-      this.interceptors.response.forEach(interceptor => {
-        chain.push(interceptor.fulfilled, interceptor.rejected)
-      })
-      return chain
-    }
+    config = deepMerge(this.defaults, config); // 配置合并
     /**
      * 超时的 Promise
      * @param request 请求
@@ -64,55 +46,64 @@ class AxiosShell {
      * @returns {Promise<Awaited<unknown>>}
      */
     const createTimeoutRace = (request, countdown) => {
-      const createTimeoutPromise = timeout => new Promise((resolve, reject) => {
-        setTimeout(() => {
-          let timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`
-          reject({
-            status: 408, // 自己根据网络错误码写的，并非真的服务器报的
-            message: timeoutErrorMessage
-          })
-        }, timeout)
-      })
-      return Promise.race([request, createTimeoutPromise(countdown)]).catch(err => {
-        console.error(err)
-        return err
-      })
-    }
+      const createTimeoutPromise = timeout =>
+        new Promise((resolve, reject) => {
+          setTimeout(() => {
+            let timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`;
+            reject({
+              status: 408, // 自己根据网络错误码写的，并非真的服务器报的
+              message: timeoutErrorMessage,
+            });
+          }, timeout);
+        });
+      return Promise.race([request, createTimeoutPromise(countdown)]).catch(error => {
+        !error.status && (error.status = 500);
+        return Promise.reject(error);
+      });
+    };
+    /**
+     * 挂接拦截器
+     * @param middle 中间的 promise
+     * @returns {*[]}
+     */
+    const createInterceptorsChain = middle => {
+      // 需要构建 [fulfilled,rejected,fulfilled,rejected...] 的队列
+      const chain = [middle, undefined];
 
+      // 创建请求链数组
+      this.interceptors.request.forEach(interceptor => {
+        chain.unshift(interceptor.fulfilled, interceptor.rejected);
+      });
+      this.interceptors.response.forEach(interceptor => {
+        chain.push(interceptor.fulfilled, interceptor.rejected);
+      });
+      return chain;
+    };
     // 核心请求
-    let createRequest = () => this.request(config)
+    let createRequest = () => this.request(config);
     // 带上超时
-    const { timeout } = config
+    const { timeout } = config;
     const requestGetData = timeout
       ? () => createTimeoutRace(createRequest(), timeout)
-      : createRequest
+      : createRequest;
+    let promise = Promise.resolve(config);
     // 链式请求生成
-    const chain = createInterceptorsChain(requestGetData)
+    const chain = createInterceptorsChain(requestGetData);
     // 请求链执行
-    let promise = Promise.resolve(config)
     while (chain.length) {
-      promise = promise.then(chain.shift(), chain.shift())
+      promise = promise.then(chain.shift(), chain.shift());
     }
-    return promise
+    return promise;
   }
 }
 
 // 增加请求方法
 ['get', 'post', 'head', 'options', 'put', 'delete', 'trace', 'connect'].forEach(method => {
-  /**
-   * 创建一个请求，带有默认参数，并设置请求方法
-   * @param url
-   * @param data
-   * @param config
-   * @returns {Promise<{}>}
-   */
-  function createRequest(url = '', data = {}, config) {
-    const nextConfig = deepMerge(config, { url, data, method })
-    return this._requestWithInterceptors(nextConfig)
-  }
-  AxiosShell.prototype[method] = createRequest
-})
+  AxiosShell.prototype[method] = function createRequest(url = '', data = {}, config) {
+    const nextConfig = deepMerge(config, { url, data, method });
+    return this._requestWithInterceptors(nextConfig);
+  };
+});
 
-const axiosShell = new AxiosShell()
-
-export default axiosShell
+const axiosShell = new AxiosShell();
+export default axiosShell;
