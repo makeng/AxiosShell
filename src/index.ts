@@ -7,8 +7,17 @@
 import InterceptorManager from './InterceptorManager';
 import { deepMerge } from './utils/merge';
 
+type Default = Record<string, any>;
+
 class AxiosShell {
-  constructor(instanceConfig = {}) {
+  adapter: (...args: any) => Promise<any>;
+  readonly defaults: Default = {};
+  interceptors: {
+    request: InterceptorManager;
+    response: InterceptorManager;
+  };
+
+  constructor(instanceConfig: Default = {}) {
     const { adapter } = instanceConfig;
 
     this.defaults = instanceConfig;
@@ -35,9 +44,9 @@ class AxiosShell {
 
   /**
    * 带拦截器的请求
-   * @private
+   * @param config
    */
-  _requestWithInterceptors(config) {
+  requestWithInterceptors(config) {
     config = deepMerge(this.defaults, config); // 配置合并
     /**
      * 超时的 Promise
@@ -47,9 +56,9 @@ class AxiosShell {
      */
     const createTimeoutRace = (adapter, countdown) => {
       const createTimeoutPromise = timeout =>
-        new Promise((resolve, reject) => {
+        new Promise((_, reject) => {
           setTimeout(() => {
-            let timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`;
+            const timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`;
             reject({
               status: 408, // 自己根据网络错误码写的，并非真的服务器报的
               message: timeoutErrorMessage,
@@ -80,7 +89,7 @@ class AxiosShell {
       return chain;
     };
     // 核心请求
-    let createRequest = () => this.adapter(config);
+    const createRequest = () => this.adapter(config);
     // 带上超时
     const { timeout } = config;
     const requestGetData = timeout
@@ -101,7 +110,7 @@ class AxiosShell {
 ['get', 'post', 'head', 'options', 'put', 'delete', 'trace', 'connect'].forEach(method => {
   AxiosShell.prototype[method] = function createRequest(url = '', data = {}, config) {
     const nextConfig = deepMerge(config, { url, data, method });
-    return this._requestWithInterceptors(nextConfig);
+    return this.requestWithInterceptors(nextConfig);
   };
 });
 
