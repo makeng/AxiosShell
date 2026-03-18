@@ -16,7 +16,7 @@ class InterceptorManager {
    * 迭代器
    * @param fn
    */
-  forEach(fn) {
+  forEach(fn: (h: Record<'fulfilled' | 'rejected', handleProcess>) => void) {
     this.handlers.forEach(function(h) {
       if (h) {
         fn(h);

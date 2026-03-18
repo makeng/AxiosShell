@@ -4,7 +4,20 @@
 * date:2019-06-10
 * ---------------------------------------------------------------------------------------- */
 
-import axiosShell from '../../src'
+import { describe, it, expect } from 'vitest';
+import axiosShell from '../../src/index';
+
+interface HilinkConfig {
+  domain: string;
+  path: string;
+  method: string;
+  param: Record<string, unknown>;
+}
+
+interface HilinkResponse {
+  newConfig: HilinkConfig;
+  msg: string;
+}
 
 /**
  * 输入是 axios 一样的方法：
@@ -21,32 +34,31 @@ import axiosShell from '../../src'
 describe('axiosShell-仿真华为 hilink 接口测试', function () {
 
   // 请求仿真函数:接收所有 axios 参数形式的 config，转变成 hilnik 需要的
-  function adapter(config) {
-    const { baseURL, method, url, data } = config
-    const newConfig = {
-      domain: baseURL,
-      path: url,
-      method: method.toUpperCase(),
-      param: data.params
-    }
+  function adapter(config: Record<string, unknown>): Promise<HilinkResponse> {
+    const { baseURL, method, url, data } = config;
+    const newConfig: HilinkConfig = {
+      domain: baseURL as string,
+      path: url as string,
+      method: (method as string).toUpperCase(),
+      param: (data as { params: Record<string, unknown> }).params
+    };
 
     return Promise.resolve({
       newConfig,
       msg: '成功'
-    })
+    });
   }
 
   const hilinkAxios = axiosShell.create({
     baseURL: 'http://homemate2.orvibo.com',
     adapter,
-  })
+  });
 
-  it('发送请求并接收结果', done => {
-    hilinkAxios.get('/channel', { params: { name: 'sport' } }).then(res => {
-      console.log('仿真 hilink 请求结果', res)
-      done(res)
-    }).catch(err => {
-      console.warn('请求失败', err)
-    })
-  })
-})
+  it('发送请求并接收结果', async () => {
+    const res = await hilinkAxios.get('/channel', { params: { name: 'sport' } });
+    console.log('仿真 hilink 请求结果', res);
+    expect(res).toMatchObject({
+      msg: '成功'
+    });
+  });
+});

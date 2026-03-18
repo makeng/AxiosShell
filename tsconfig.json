@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "strict": true,
     "target": "es2017",
     "module": "commonjs",
     "removeComments": false,
@@ -7,7 +8,7 @@
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "jsxFactory": "Taro.createElement",
-    "noImplicitAny": false,
+    "noImplicitAny": true,
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "outDir": "lib",
@@ -17,12 +18,14 @@
     "strictNullChecks": true,
     "sourceMap": true,
     "baseUrl": ".",
-    "rootDir": ".",
+    "rootDir": "src",
     "jsx": "preserve",
     "typeRoots": ["node_modules/@types", "global.d.ts"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "spec", "lib"],
   "compileOnSave": false
 }
