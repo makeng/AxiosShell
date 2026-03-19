@@ -1,23 +1,20 @@
 import { describe, expect, it } from 'vitest'
-import axiosShell from '../../src/index'
+import axiosShell, { RequestConfig } from '../../src/index'
 
-type TestConfig = {
-  url?: string;
-  method?: string;
-  headers?: Record<string, string>;
-  baseURL?: string;
-  adapter?: () => Promise<unknown>;
-  timeout?: number;
-};
+interface TestResponse {
+  data: unknown
+  status: number
+  config: RequestConfig
+}
 
-type TestResponse = {
-  data: unknown;
-  status: number;
-  config: TestConfig;
-};
+interface TestError {
+  status: number
+  message: string
+  config: RequestConfig
+}
 
 describe('InterceptorManager - 拦截器功能测试', () => {
-  const createTestInstance = (adapter?: () => Promise<unknown>) => {
+  function createTestInstance(adapter?: (config: RequestConfig) => Promise<unknown>) {
     return axiosShell.create({
       baseURL: 'https://test.com',
       adapter: adapter || (() => Promise.resolve({ data: 'success', status: 200 })),
@@ -135,14 +132,14 @@ describe('InterceptorManager - 拦截器功能测试', () => {
     })
 
     it('响应拦截器可以获取原始 config', async () => {
-      const instance = createTestInstance((config: TestConfig) =>
+      const instance = createTestInstance((config: RequestConfig) =>
         Promise.resolve({
           data: 'success',
           status: 200,
           config,
         }),
       )
-      let capturedConfig: TestConfig | undefined
+      let capturedConfig: RequestConfig | undefined
 
       instance.interceptors.response.use(response => {
         capturedConfig = (response as TestResponse).config
@@ -227,18 +224,18 @@ describe('InterceptorManager - 拦截器功能测试', () => {
     })
 
     it('错误拦截器可以获取 config 信息', async () => {
-      const instance = createTestInstance((config: TestConfig) =>
+      const instance = createTestInstance((config: RequestConfig) =>
         Promise.reject({
           status: 500,
           message: 'server error',
           config,
         }),
       )
-      let capturedConfig: TestConfig | undefined
+      let capturedConfig: RequestConfig | undefined
 
       instance.interceptors.response.use(
         res => res,
-        error => {
+        (error: TestError) => {
           capturedConfig = error.config
           return Promise.reject(error)
         },
@@ -257,7 +254,7 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       let retryCount = 0
       const maxRetries = 2
 
-      const instance = createTestInstance((config: TestConfig) => {
+      const instance = createTestInstance((config: RequestConfig) => {
         attemptCount++
         if (attemptCount < 3) {
           return Promise.reject({ status: 500, message: 'temporary error', config })
@@ -267,11 +264,10 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
       instance.interceptors.response.use(
         res => res,
-        async (error) => {
+        async (error: TestError) => {
           if (retryCount < maxRetries) {
             retryCount++
-            // 重新发起请求
-            return instance.get(error.config.url, {}, error.config)
+            return instance.get(error.config.url || '', {}, error.config)
           }
           return Promise.reject(error)
         },
@@ -288,34 +284,33 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       let retryCount = 0
       const maxRetries = 2
 
-      const instance = createTestInstance((config: TestConfig) => {
+      const instance = createTestInstance((config: RequestConfig) => {
         attemptCount++
         return Promise.reject({ status: 500, message: 'permanent error', config })
       })
 
       instance.interceptors.response.use(
         res => res,
-        async (error) => {
+        async (error: TestError) => {
           if (retryCount < maxRetries) {
             retryCount++
-            return instance.get(error.config.url, {}, error.config)
+            return instance.get(error.config.url || '', {}, error.config)
           }
           return Promise.reject(error)
         },
       )
 
       await expect(instance.get('/retry')).rejects.toMatchObject({ status: 500 })
-      // 初始请求 + 2 次重试
       expect(attemptCount).toBe(3)
     })
   })
 
   describe('请求与响应拦截器协作', () => {
     it('请求拦截器修改的 config 在响应拦截器中可获取', async () => {
-      const instance = createTestInstance((config: TestConfig) =>
+      const instance = createTestInstance((config: RequestConfig) =>
         Promise.resolve({ data: 'ok', status: 200, config }),
       )
-      let configInResponse: TestConfig | undefined
+      let configInResponse: RequestConfig | undefined
 
       instance.interceptors.request.use(config => {
         config.headers = { ...config.headers, 'X-Added': 'by-request-interceptor' }
@@ -334,7 +329,7 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
     it('完整的请求-响应链路（Axios 标准顺序）', async () => {
       const logs: string[] = []
-      const instance = createTestInstance((config: TestConfig) => {
+      const instance = createTestInstance((config: RequestConfig) => {
         logs.push('adapter')
         return Promise.resolve({ data: config, status: 200, config })
       })
@@ -358,7 +353,6 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
       await instance.get('/test')
 
-      // Axios 标准：请求拦截器后添加的先执行，响应拦截器按添加顺序执行
       expect(logs).toEqual(['request-2', 'request-1', 'adapter', 'response-1', 'response-2'])
     })
   })
