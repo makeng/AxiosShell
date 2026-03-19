@@ -103,17 +103,31 @@ class AxiosShell {
       // 需要构建 [fulfilled,rejected,fulfilled,rejected...] 的队列
       const chain: (((value: unknown) => unknown) | undefined)[] = [middle, undefined];
 
-      // 创建请求链数组
+      // 请求拦截器：后添加的先执行（使用 unshift，后添加的放到数组前面）
       this.interceptors.request.forEach((interceptor: InterceptorHandler) => {
         chain.unshift(interceptor.fulfilled as (value: unknown) => unknown, interceptor.rejected as (value: unknown) => unknown);
       });
+
+      // 响应拦截器：按添加顺序执行（使用 push）
       this.interceptors.response.forEach((interceptor: InterceptorHandler) => {
         chain.push(interceptor.fulfilled as (value: unknown) => unknown, interceptor.rejected as (value: unknown) => unknown);
       });
       return chain;
     };
     // 核心请求
-    const createRequest = () => this.adapter(mergedConfig);
+    const createRequest = () => this.adapter(mergedConfig).then(response => {
+      // 将 config 附加到响应中，便于拦截器访问
+      if (typeof response === 'object' && response !== null) {
+        (response as Record<string, unknown>).config = mergedConfig;
+      }
+      return response;
+    }).catch(error => {
+      // 将 config 附加到错误对象中，便于拦截器访问
+      if (typeof error === 'object' && error !== null) {
+        (error as Record<string, unknown>).config = mergedConfig;
+      }
+      return Promise.reject(error);
+    });
     // 带上超时
     const { timeout } = mergedConfig;
     const requestGetData = timeout
