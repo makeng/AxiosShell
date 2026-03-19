@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, expect, it } from 'vitest'
-import axiosShell from '../../../src/index'
+import axiosShell from '../../src/index'
 
 interface FetchResponse {
   data: unknown;

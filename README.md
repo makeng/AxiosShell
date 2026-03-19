@@ -29,7 +29,7 @@
   - 安装全局 jasmine：`cnpm i jasmine -g`
   - 安装相关 npm 包：`cnpm i`
   - 在 Webstorm 中配置 jasmine 环境并运行（右键-run），如图所示![test-config](./img/test-config.jpg)
-  - 点击运行，可以启动所有 jasmine 的单元测试（/spec 文件夹下）<img src="./img/test-start.png" alt="text-start" style="zoom:40%;" />
+  - 点击运行，可以启动所有 jasmine 的单元测试（/test 文件夹下）<img src="./img/test-start.png" alt="text-start" style="zoom:40%;" />
   - 查看结果<img src="./img/test-result.png" alt="test-result" style="zoom:80%;" />
-  - 结果无误后，可以修改 /src 的代码进行功能增加，或者增加 /spec 下的单元测试进行更细致的测试
+  - 结果无误后，可以修改 /src 的代码进行功能增加，或者增加 /test 下的单元测试进行更细致的测试
 

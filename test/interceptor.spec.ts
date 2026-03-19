@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import axiosShell, { RequestConfig } from '../../src/index'
+import axiosShell, { RequestConfig } from '../src/index'
 
 interface TestResponse {
   data: unknown

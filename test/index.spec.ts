@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect, vi } from 'vitest';
-import axiosShell from '../../src/index';
+import axiosShell from '../src/index';
 
 describe('axiosShell-功能测试', function () {
 

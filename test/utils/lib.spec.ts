@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect } from 'vitest';
-import { isArray, isObject } from '../../../src/utils/lib';
+import { isArray, isObject } from '../../src/utils/lib';
 
 // 测试
 describe('utlis-类型检查', function () {
