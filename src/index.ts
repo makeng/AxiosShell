@@ -2,9 +2,9 @@
  * about:主文件，导出一个类。更多细节可以参考 Axios 源码。
  * ---------------------------------------------------------------------------------------- */
 
-import InterceptorManager, { InterceptorHandler } from './InterceptorManager';
-import { deepMerge } from './utils/merge';
-import { AxiosError, AxiosResponse } from './AxiosError';
+import InterceptorManager, { InterceptorHandler } from '@/InterceptorManager';
+import { deepMerge } from '@/utils/merge';
+import { AxiosError, AxiosResponse } from '@/AxiosError';
 
 // 状态码验证函数类型
 type ValidateStatus = (status: number) => boolean;

@@ -2,7 +2,7 @@
  * about:Axios 风格的错误类封装
  * ---------------------------------------------------------------------------------------- */
 
-import { RequestConfig } from './index';
+import { RequestConfig } from '@/index';
 
 // 错误码枚举
 type AxiosErrorCode =

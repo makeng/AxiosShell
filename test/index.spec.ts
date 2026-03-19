@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect, vi } from 'vitest';
-import axiosShell, { AxiosError } from '../src/index';
+import axiosShell, { AxiosError } from '@/index';
 
 describe('axiosShell-功能测试', function () {
 

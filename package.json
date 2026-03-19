@@ -11,6 +11,7 @@
     "build": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:prod": "NODE_ENV=prod npm run test",
     "prepublishOnly": "npm run test && npm run build"
   },
   "files": [
