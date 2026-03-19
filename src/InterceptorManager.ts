@@ -2,10 +2,10 @@
  * about:拦截器类。因为是类，所以文件名大些
  * ---------------------------------------------------------------------------------------- */
 
-type handleProcess = ((parmas: any) => any) | null;
+type HandleProcess = ((params: unknown) => unknown) | null;
 
 class InterceptorManager {
-  handlers: (Record<'fulfilled' | 'rejected', handleProcess> | null)[];
+  handlers: (Record<'fulfilled' | 'rejected', HandleProcess> | null)[];
   constructor() {
     this.handlers = [];
   }
@@ -14,7 +14,7 @@ class InterceptorManager {
    * 迭代器
    * @param fn
    */
-  forEach(fn: (h: Record<'fulfilled' | 'rejected', handleProcess>) => void) {
+  forEach(fn: (h: Record<'fulfilled' | 'rejected', HandleProcess>) => void) {
     this.handlers.forEach(function(h) {
       if (h) {
         fn(h);
@@ -25,7 +25,7 @@ class InterceptorManager {
   /**
    * 添加拦截器
    */
-  use(fulfilled: handleProcess = null, rejected: handleProcess = null) {
+  use(fulfilled: HandleProcess = null, rejected: HandleProcess = null) {
     this.handlers.push({
       fulfilled,
       rejected,

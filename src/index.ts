@@ -84,7 +84,7 @@ class AxiosShell {
           setTimeout(() => {
             const timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`;
             reject({
-              status: 408, // 自己根据网络错误码写的，并非真的服务器报的
+              status: 408,
               message: timeoutErrorMessage,
             });
           }, timeout);
@@ -149,8 +149,7 @@ const httpMethods = ['get', 'post', 'head', 'options', 'put', 'delete', 'trace',
 type HttpMethod = typeof httpMethods[number];
 
 httpMethods.forEach(method => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (AxiosShell.prototype as any)[method] = function createRequest(url = '', data = {}, config?: RequestConfig): Promise<unknown> {
+  (AxiosShell.prototype as Record<string, unknown>)[method] = function createRequest(url = '', data = {}, config?: RequestConfig): Promise<unknown> {
     const nextConfig = deepMerge(config, { url, data, method });
     return this.requestWithInterceptors(nextConfig);
   };
