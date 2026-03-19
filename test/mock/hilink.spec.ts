@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect } from 'vitest';
-import axiosShell from '../../src/index';
+import axiosShell, { AxiosResponse } from '../../src/index';
 
 interface HilinkConfig {
   domain: string;
@@ -53,9 +53,9 @@ describe('axiosShell-仿真华为 hilink 接口测试', function () {
   });
 
   it('发送请求并接收结果', async () => {
-    const res = await hilinkAxios.get('/channel', { params: { name: 'sport' } });
+    const res = await hilinkAxios.get('/channel', { params: { name: 'sport' } }) as AxiosResponse;
     console.log('仿真 hilink 请求结果', res);
-    expect(res).toMatchObject({
+    expect(res.data).toMatchObject({
       msg: '成功'
     });
   });

@@ -1,15 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import axiosShell, { RequestConfig } from '../src/index'
+import axiosShell, { RequestConfig, AxiosError, AxiosResponse } from '../src/index'
 
-interface TestResponse {
+interface TestData {
   data: unknown
   status: number
-  config: RequestConfig
-}
-
-interface TestError {
-  status: number
-  message: string
   config: RequestConfig
 }
 
@@ -121,11 +115,11 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       let receivedData: unknown
 
       instance.interceptors.response.use(response => {
-        receivedData = (response as TestResponse).data
+        receivedData = (response as AxiosResponse).data
         return response
       })
 
-      const res = await instance.get('/test') as TestResponse
+      const res = await instance.get('/test') as AxiosResponse
 
       expect(receivedData).toEqual({ name: 'test' })
       expect(res.data).toEqual({ name: 'test' })
@@ -142,7 +136,7 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       let capturedConfig: RequestConfig | undefined
 
       instance.interceptors.response.use(response => {
-        capturedConfig = (response as TestResponse).config
+        capturedConfig = (response as AxiosResponse).config
         return response
       })
 
@@ -177,12 +171,12 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       )
 
       instance.interceptors.response.use(response => {
-        const res = response as TestResponse
-        res.data = { ...res.data, modified: true }
+        const res = response as AxiosResponse
+        res.data = { ...(res.data as object), modified: true }
         return res
       })
 
-      const res = await instance.get('/test') as TestResponse
+      const res = await instance.get('/test') as AxiosResponse
 
       expect(res.data).toHaveProperty('modified', true)
       expect(res.data).toHaveProperty('value', 1)
@@ -209,18 +203,19 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       const instance = createTestInstance(() =>
         Promise.reject({ status: 500, message: 'server error' }),
       )
-      let capturedError: unknown
+      let capturedError: AxiosError | undefined
 
       instance.interceptors.response.use(
         res => res,
         error => {
-          capturedError = error
+          capturedError = error as AxiosError
           return Promise.reject(error)
         },
       )
 
-      await expect(instance.get('/test')).rejects.toMatchObject({ status: 500 })
-      expect(capturedError).toMatchObject({ status: 500 })
+      await expect(instance.get('/test')).rejects.toBeInstanceOf(AxiosError)
+      expect(capturedError).toBeInstanceOf(AxiosError)
+      expect(capturedError?.code).toBe('ERR_NETWORK')
     })
 
     it('错误拦截器可以获取 config 信息', async () => {
@@ -235,13 +230,13 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
       instance.interceptors.response.use(
         res => res,
-        (error: TestError) => {
-          capturedConfig = error.config
+        error => {
+          capturedConfig = (error as AxiosError).config
           return Promise.reject(error)
         },
       )
 
-      await expect(instance.get('/api/error', {}, { headers: { 'X-Test': '1' } })).rejects.toMatchObject({ status: 500 })
+      await expect(instance.get('/api/error', {}, { headers: { 'X-Test': '1' } })).rejects.toBeInstanceOf(AxiosError)
 
       expect(capturedConfig).toBeDefined()
       expect(capturedConfig?.url).toBe('/api/error')
@@ -264,16 +259,17 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
       instance.interceptors.response.use(
         res => res,
-        async (error: TestError) => {
+        async error => {
           if (retryCount < maxRetries) {
             retryCount++
-            return instance.get(error.config.url || '', {}, error.config)
+            const axiosError = error as AxiosError
+            return instance.get(axiosError.config.url || '', {}, axiosError.config)
           }
           return Promise.reject(error)
         },
       )
 
-      const res = await instance.get('/retry') as TestResponse
+      const res = await instance.get('/retry') as AxiosResponse
 
       expect(attemptCount).toBe(3)
       expect(res.data).toBe('success after retry')
@@ -291,16 +287,17 @@ describe('InterceptorManager - 拦截器功能测试', () => {
 
       instance.interceptors.response.use(
         res => res,
-        async (error: TestError) => {
+        async error => {
           if (retryCount < maxRetries) {
             retryCount++
-            return instance.get(error.config.url || '', {}, error.config)
+            const axiosError = error as AxiosError
+            return instance.get(axiosError.config.url || '', {}, axiosError.config)
           }
           return Promise.reject(error)
         },
       )
 
-      await expect(instance.get('/retry')).rejects.toMatchObject({ status: 500 })
+      await expect(instance.get('/retry')).rejects.toBeInstanceOf(AxiosError)
       expect(attemptCount).toBe(3)
     })
   })
@@ -318,7 +315,7 @@ describe('InterceptorManager - 拦截器功能测试', () => {
       })
 
       instance.interceptors.response.use(response => {
-        configInResponse = (response as TestResponse).config
+        configInResponse = (response as AxiosResponse).config
         return response
       })
 

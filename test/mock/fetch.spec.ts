@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, expect, it } from 'vitest'
-import axiosShell from '../../src/index'
+import axiosShell, { AxiosError, AxiosResponse } from '../../src/index'
 
 interface FetchResponse {
   data: unknown;
@@ -85,7 +85,7 @@ describe('axiosShell-真实网络请求测试', function () {
   })
 
   it('GET 请求 - 获取 JSON 数据', async () => {
-    const res = await httpbinAxios.get('/get', {}, { params: { foo: 'bar', test: '123' } }) as FetchResponse
+    const res = await httpbinAxios.get('/get', {}, { params: { foo: 'bar', test: '123' } }) as AxiosResponse
 
     expect(res.status).toBe(200)
     expect(res.data).toHaveProperty('args')
@@ -97,7 +97,7 @@ describe('axiosShell-真实网络请求测试', function () {
 
   it('POST 请求 - 发送 JSON 数据', async () => {
     const postData = { name: 'test', value: 42 }
-    const res = await httpbinAxios.post('/post', postData) as FetchResponse
+    const res = await httpbinAxios.post('/post', postData) as AxiosResponse
 
     expect(res.status).toBe(200)
     expect(res.data).toHaveProperty('json')
@@ -112,7 +112,7 @@ describe('axiosShell-真实网络请求测试', function () {
       headers: customHeaders,
     })
 
-    const res = await headerAxios.get('/headers') as FetchResponse
+    const res = await headerAxios.get('/headers') as AxiosResponse
 
     expect(res.status).toBe(200)
     const headers = (res.data as Record<string, unknown>).headers as Record<string, string>
@@ -120,14 +120,19 @@ describe('axiosShell-真实网络请求测试', function () {
   })
 
   it('响应状态码判断', async () => {
-    const res = await httpbinAxios.get('/status/200') as FetchResponse
+    const res = await httpbinAxios.get('/status/200') as AxiosResponse
     expect(res.status).toBe(200)
   })
 
   it('404 错误处理', async () => {
-    await expect(httpbinAxios.get('/status/404')).rejects.toMatchObject({
-      status: 404,
-    })
+    await expect(httpbinAxios.get('/status/404')).rejects.toBeInstanceOf(AxiosError)
+    try {
+      await httpbinAxios.get('/status/404')
+    } catch (error) {
+      const axiosError = error as AxiosError
+      expect(axiosError.code).toBe('ERR_NETWORK')
+      expect(axiosError.config).toBeDefined()
+    }
   })
 
   it('拦截器在真实请求中的工作', async () => {

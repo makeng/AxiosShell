@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect, vi } from 'vitest';
-import axiosShell from '../src/index';
+import axiosShell, { AxiosError } from '../src/index';
 
 describe('axiosShell-功能测试', function () {
 
@@ -67,8 +67,13 @@ describe('axiosShell-功能测试', function () {
       },
     });
 
-    await expect(delayReq.get()).rejects.toMatchObject({
-      status: 408,
-    });
+    await expect(delayReq.get()).rejects.toBeInstanceOf(AxiosError);
+    try {
+      await delayReq.get();
+    } catch (error) {
+      const axiosError = error as AxiosError;
+      expect(axiosError.code).toBe('ECONNABORTED');
+      expect(axiosError.message).toContain('timeout');
+    }
   });
 });

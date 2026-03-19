@@ -4,6 +4,10 @@
 
 import InterceptorManager, { InterceptorHandler } from './InterceptorManager';
 import { deepMerge } from './utils/merge';
+import { AxiosError, AxiosResponse } from './AxiosError';
+
+// 状态码验证函数类型
+type ValidateStatus = (status: number) => boolean;
 
 interface RequestConfig extends Record<string, unknown> {
   url?: string;
@@ -14,6 +18,7 @@ interface RequestConfig extends Record<string, unknown> {
   baseURL?: string;
   timeout?: number;
   adapter?: (config: RequestConfig) => Promise<unknown>;
+  validateStatus?: ValidateStatus;
 }
 
 class AxiosShell {
@@ -50,6 +55,13 @@ class AxiosShell {
   }
 
   /**
+   * 默认状态码验证：2xx 视为成功
+   */
+  private static defaultValidateStatus(status: number): boolean {
+    return status >= 200 && status < 300;
+  }
+
+  /**
    * 创建
    * @param defaultConfig 默认配置
    * @returns {AxiosShell}
@@ -66,21 +78,15 @@ class AxiosShell {
   requestWithInterceptors(config: RequestConfig): Promise<unknown> {
     const mergedConfig = deepMerge(this.defaults, config) as RequestConfig;
 
-    const createTimeoutRace = (adapter: Promise<unknown>, countdown: number) => {
+    const createTimeoutRace = (adapterPromise: Promise<unknown>, countdown: number) => {
       const createTimeoutPromise = (timeout: number) =>
         new Promise<never>((_, reject) => {
           setTimeout(() => {
-            const timeoutErrorMessage = `Timeout of ${timeout}ms exceeded`;
-            reject({
-              status: 408,
-              message: timeoutErrorMessage,
-            });
+            const timeoutError = AxiosError.createTimeoutError(timeout, mergedConfig);
+            reject(timeoutError);
           }, timeout);
         });
-      return Promise.race([adapter, createTimeoutPromise(countdown)]).catch((error: Record<string, unknown> & { status?: number }) => {
-        !error.status && (error.status = 500);
-        return Promise.reject(error);
-      });
+      return Promise.race([adapterPromise, createTimeoutPromise(countdown)]);
     };
 
     const createInterceptorsChain = (middle: () => Promise<unknown>) => {
@@ -104,17 +110,56 @@ class AxiosShell {
       return chain;
     };
 
-    // 核心请求
+    // 核心请求，使用 AxiosError 封装错误
     const createRequest = () => this.adapter(mergedConfig).then(response => {
+      // 将响应包装为 AxiosResponse 格式
+      let axiosResponse: AxiosResponse;
+
       if (typeof response === 'object' && response !== null) {
-        (response as Record<string, unknown>).config = mergedConfig;
+        const responseObj = response as Record<string, unknown>;
+        axiosResponse = {
+          data: responseObj.data ?? response,
+          status: (responseObj.status as number) ?? 200,
+          statusText: (responseObj.statusText as string) ?? 'OK',
+          headers: (responseObj.headers as Record<string, string>) ?? {},
+          config: mergedConfig,
+        };
+      } else {
+        axiosResponse = {
+          data: response,
+          status: 200,
+          statusText: 'OK',
+          headers: {},
+          config: mergedConfig,
+        };
       }
-      return response;
+
+      // 验证状态码
+      const validateStatus = mergedConfig.validateStatus ?? AxiosShell.defaultValidateStatus;
+      if (!validateStatus(axiosResponse.status)) {
+        throw AxiosError.createResponseError(
+          `Request failed with status code ${axiosResponse.status}`,
+          mergedConfig,
+          undefined,
+          axiosResponse
+        );
+      }
+
+      return axiosResponse;
     }).catch(error => {
-      if (typeof error === 'object' && error !== null) {
-        (error as Record<string, unknown>).config = mergedConfig;
+      // 如果已经是 AxiosError，直接抛出
+      if (AxiosError.isAxiosError(error)) {
+        return Promise.reject(error);
       }
-      return Promise.reject(error);
+
+      // 将普通错误转换为 AxiosError
+      const axiosError = AxiosError.createNetworkError(
+        error instanceof Error ? error.message : 'Network Error',
+        mergedConfig,
+        undefined,
+        error instanceof Error ? error : undefined
+      );
+      return Promise.reject(axiosError);
     });
 
     const { timeout } = mergedConfig;
@@ -144,4 +189,4 @@ httpMethods.forEach(method => {
 
 const axiosShell = new AxiosShell();
 export default axiosShell;
-export { AxiosShell, RequestConfig };
+export { AxiosShell, RequestConfig, AxiosError, AxiosResponse, ValidateStatus };
