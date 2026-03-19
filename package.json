@@ -9,6 +9,7 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "build": "tsc",
+    "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:prod": "NODE_ENV=prod npm run test",
