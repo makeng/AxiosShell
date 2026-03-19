@@ -5,7 +5,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect } from 'vitest';
-import axiosShell from '../../src/index';
+import axiosShell from '../../../src/index';
 
 interface HilinkConfig {
   domain: string;
