@@ -21,15 +21,55 @@
 
 
 
+### 安装
+
+```bash
+npm install git+https://github.com/makeng/AxiosShell.git
+```
+
+### 使用示例
+
+```typescript
+import axiosShell from 'axios-shell';
+
+const instance = axiosShell.create({
+  baseURL: 'https://api.example.com',
+  timeout: 5000,
+  adapter: (config) => {
+    // 使用项目提供的请求方法（如华为小圆的 fetch）
+    return fetch(config.url!, {
+      method: config.method,
+      headers: config.headers,
+      body: JSON.stringify(config.data),
+    }).then(res => res.json());
+  }
+});
+
+// 添加拦截器
+instance.interceptors.request.use(config => {
+  config.headers = { ...config.headers, 'X-Token': 'your-token' };
+  return config;
+});
+
+// 发起请求
+const data = await instance.get('/users');
+```
+
 ### 开发说明
 
-本项目基于「单元测试驱动」进行开发，就是先写设定功能，再写该功能的单元测试，最后写工程代码，让单元测试通过。纯 js 的工具都建议用这种方式进行开发。
+本项目基于「测试驱动开发(TDD)」进行开发，使用 Vitest 作为测试框架。
 
-- 启动项目
-  - 安装全局 jasmine：`cnpm i jasmine -g`
-  - 安装相关 npm 包：`cnpm i`
-  - 在 Webstorm 中配置 jasmine 环境并运行（右键-run），如图所示![test-config](./img/test-config.jpg)
-  - 点击运行，可以启动所有 jasmine 的单元测试（/test 文件夹下）<img src="./img/test-start.png" alt="text-start" style="zoom:40%;" />
-  - 查看结果<img src="./img/test-result.png" alt="test-result" style="zoom:80%;" />
-  - 结果无误后，可以修改 /src 的代码进行功能增加，或者增加 /test 下的单元测试进行更细致的测试
+```bash
+# 安装依赖
+npm install
+
+# 运行测试
+npm test
+
+# 监听模式运行测试
+npm run test:watch
+
+# 构建
+npm run build
+```
 

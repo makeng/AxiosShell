@@ -2,7 +2,7 @@
   "name": "axios-shell",
   "description": "fetch 类网络请求的封装库",
   "author": "mazhaokeng",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "type": "commonjs",
   "main": "lib/index.js",

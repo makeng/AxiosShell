@@ -2,10 +2,10 @@
  * about:Axios 风格的错误类封装
  * ---------------------------------------------------------------------------------------- */
 
-import { RequestConfig } from '@/index';
+import { RequestConfig } from '@/types';
 
 // 错误码枚举
-type AxiosErrorCode =
+export type AxiosErrorCode =
   | 'ERR_BAD_OPTION_VALUE'
   | 'ERR_BAD_OPTION'
   | 'ECONNABORTED'
@@ -20,7 +20,7 @@ type AxiosErrorCode =
   | 'ERR_INVALID_URL';
 
 // 响应数据结构
-interface AxiosResponse<T = unknown> {
+export interface AxiosResponse<T = unknown> {
   data: T;
   status: number;
   statusText: string;
@@ -28,7 +28,7 @@ interface AxiosResponse<T = unknown> {
   config: RequestConfig;
 }
 
-class AxiosError<T = unknown> extends Error {
+export class AxiosError<T = unknown> extends Error {
   code: AxiosErrorCode | null;
   config: RequestConfig;
   request?: unknown;
@@ -100,5 +100,3 @@ class AxiosError<T = unknown> extends Error {
     return new AxiosError(message, 'ERR_BAD_REQUEST', config, request, undefined, cause);
   }
 }
-
-export { AxiosError, AxiosErrorCode, AxiosResponse };

@@ -5,23 +5,9 @@
 import InterceptorManager, { InterceptorHandler } from '@/InterceptorManager';
 import { deepMerge } from '@/utils/merge';
 import { AxiosError, AxiosResponse } from '@/AxiosError';
+import { RequestConfig, ValidateStatus } from '@/types';
 
-// 状态码验证函数类型
-type ValidateStatus = (status: number) => boolean;
-
-interface RequestConfig extends Record<string, unknown> {
-  url?: string;
-  method?: string;
-  data?: Record<string, unknown>;
-  params?: Record<string, unknown>;
-  headers?: Record<string, string>;
-  baseURL?: string;
-  timeout?: number;
-  adapter?: (config: RequestConfig) => Promise<unknown>;
-  validateStatus?: ValidateStatus;
-}
-
-class AxiosShell {
+export class AxiosShell {
   adapter!: (config: RequestConfig) => Promise<unknown>;
   readonly defaults: RequestConfig = {};
   interceptors: {
@@ -189,4 +175,5 @@ httpMethods.forEach(method => {
 
 const axiosShell = new AxiosShell();
 export default axiosShell;
-export { AxiosShell, RequestConfig, AxiosError, AxiosResponse, ValidateStatus };
+export { RequestConfig, ValidateStatus } from '@/types';
+export { AxiosError, AxiosResponse } from '@/AxiosError';

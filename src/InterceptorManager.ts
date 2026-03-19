@@ -2,12 +2,12 @@
  * about:拦截器类。因为是类，所以文件名大些
  * ---------------------------------------------------------------------------------------- */
 
-interface InterceptorHandler<V = unknown> {
+export interface InterceptorHandler<V = unknown> {
   fulfilled: ((value: V) => V | Promise<V>) | null;
   rejected: ((error: unknown) => unknown) | null;
 }
 
-class InterceptorManager<V = unknown> {
+export default class InterceptorManager<V = unknown> {
   handlers: (InterceptorHandler<V> | null)[];
 
   constructor() {
@@ -55,6 +55,3 @@ class InterceptorManager<V = unknown> {
     this.handlers = [];
   }
 }
-
-export default InterceptorManager;
-export { InterceptorHandler };
