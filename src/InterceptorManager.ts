@@ -2,10 +2,14 @@
  * about:拦截器类。因为是类，所以文件名大些
  * ---------------------------------------------------------------------------------------- */
 
-type HandleProcess = ((params: unknown) => unknown) | null;
+interface InterceptorHandler<V = unknown> {
+  fulfilled: ((value: V) => V | Promise<V>) | null;
+  rejected: ((error: unknown) => unknown) | null;
+}
 
-class InterceptorManager {
-  handlers: (Record<'fulfilled' | 'rejected', HandleProcess> | null)[];
+class InterceptorManager<V = unknown> {
+  handlers: (InterceptorHandler<V> | null)[];
+
   constructor() {
     this.handlers = [];
   }
@@ -14,7 +18,7 @@ class InterceptorManager {
    * 迭代器
    * @param fn
    */
-  forEach(fn: (h: Record<'fulfilled' | 'rejected', HandleProcess>) => void) {
+  forEach(fn: (h: InterceptorHandler<V>) => void): void {
     this.handlers.forEach(function(h) {
       if (h) {
         fn(h);
@@ -25,7 +29,7 @@ class InterceptorManager {
   /**
    * 添加拦截器
    */
-  use(fulfilled: HandleProcess = null, rejected: HandleProcess = null) {
+  use(fulfilled: ((value: V) => V | Promise<V>) | null = null, rejected: ((error: unknown) => unknown) | null = null): number {
     this.handlers.push({
       fulfilled,
       rejected,
@@ -38,17 +42,19 @@ class InterceptorManager {
    * 删除拦截器
    * @param id 在 handlers 中的序号
    */
-  eject(id: number) {
+  eject(id: number): void {
     if (this.handlers[id]) {
       this.handlers[id] = null;
     }
   }
+
   /**
    * 清空拦截器
    */
-  clear() {
+  clear(): void {
     this.handlers = [];
   }
 }
 
 export default InterceptorManager;
+export { InterceptorHandler };

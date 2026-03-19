@@ -2,12 +2,10 @@
  * about:主文件，导出一个类。更多细节可以参考 Axios 源码。
  * ---------------------------------------------------------------------------------------- */
 
-import InterceptorManager from './InterceptorManager';
+import InterceptorManager, { InterceptorHandler } from './InterceptorManager';
 import { deepMerge } from './utils/merge';
 
-type Default = Record<string, unknown>;
-
-type RequestConfig = {
+interface RequestConfig extends Record<string, unknown> {
   url?: string;
   method?: string;
   data?: Record<string, unknown>;
@@ -16,19 +14,14 @@ type RequestConfig = {
   baseURL?: string;
   timeout?: number;
   adapter?: (config: RequestConfig) => Promise<unknown>;
-} & Record<string, unknown>;
-
-type InterceptorHandler = {
-  fulfilled: ((config: RequestConfig) => RequestConfig | Promise<RequestConfig>) | null;
-  rejected: ((error: unknown) => unknown) | null;
-};
+}
 
 class AxiosShell {
   adapter!: (config: RequestConfig) => Promise<unknown>;
   readonly defaults: RequestConfig = {};
   interceptors: {
-    request: InterceptorManager;
-    response: InterceptorManager;
+    request: InterceptorManager<RequestConfig>;
+    response: InterceptorManager<unknown>;
   };
 
   // HTTP 方法声明
@@ -51,8 +44,8 @@ class AxiosShell {
     }
     // 拦截器桥接
     this.interceptors = {
-      request: new InterceptorManager(),
-      response: new InterceptorManager(),
+      request: new InterceptorManager<RequestConfig>(),
+      response: new InterceptorManager<unknown>(),
     };
   }
 
@@ -71,13 +64,8 @@ class AxiosShell {
    * @param config
    */
   requestWithInterceptors(config: RequestConfig): Promise<unknown> {
-    const mergedConfig = deepMerge(this.defaults, config); // 配置合并
-    /**
-     * 超时的 Promise
-     * @param adapter 请求
-     * @param countdown 倒计时
-     * @returns {Promise<Awaited<unknown>>}
-     */
+    const mergedConfig = deepMerge(this.defaults, config) as RequestConfig;
+
     const createTimeoutRace = (adapter: Promise<unknown>, countdown: number) => {
       const createTimeoutPromise = (timeout: number) =>
         new Promise<never>((_, reject) => {
@@ -94,49 +82,49 @@ class AxiosShell {
         return Promise.reject(error);
       });
     };
-    /**
-     * 挂接拦截器
-     * @param middle 中间的 promise
-     * @returns {*[]}
-     */
+
     const createInterceptorsChain = (middle: () => Promise<unknown>) => {
-      // 需要构建 [fulfilled,rejected,fulfilled,rejected...] 的队列
       const chain: (((value: unknown) => unknown) | undefined)[] = [middle, undefined];
 
-      // 请求拦截器：后添加的先执行（使用 unshift，后添加的放到数组前面）
-      this.interceptors.request.forEach((interceptor: InterceptorHandler) => {
-        chain.unshift(interceptor.fulfilled as (value: unknown) => unknown, interceptor.rejected as (value: unknown) => unknown);
+      // 请求拦截器：后添加的先执行
+      this.interceptors.request.forEach((interceptor) => {
+        chain.unshift(
+          interceptor.fulfilled as (value: unknown) => unknown,
+          interceptor.rejected as (value: unknown) => unknown
+        );
       });
 
-      // 响应拦截器：按添加顺序执行（使用 push）
-      this.interceptors.response.forEach((interceptor: InterceptorHandler) => {
-        chain.push(interceptor.fulfilled as (value: unknown) => unknown, interceptor.rejected as (value: unknown) => unknown);
+      // 响应拦截器：按添加顺序执行
+      this.interceptors.response.forEach((interceptor) => {
+        chain.push(
+          interceptor.fulfilled as (value: unknown) => unknown,
+          interceptor.rejected as (value: unknown) => unknown
+        );
       });
       return chain;
     };
+
     // 核心请求
     const createRequest = () => this.adapter(mergedConfig).then(response => {
-      // 将 config 附加到响应中，便于拦截器访问
       if (typeof response === 'object' && response !== null) {
         (response as Record<string, unknown>).config = mergedConfig;
       }
       return response;
     }).catch(error => {
-      // 将 config 附加到错误对象中，便于拦截器访问
       if (typeof error === 'object' && error !== null) {
         (error as Record<string, unknown>).config = mergedConfig;
       }
       return Promise.reject(error);
     });
-    // 带上超时
+
     const { timeout } = mergedConfig;
     const requestGetData = timeout
       ? () => createTimeoutRace(createRequest(), timeout as number)
       : createRequest;
+
     let promise: Promise<unknown> = Promise.resolve(mergedConfig);
-    // 链式请求生成
     const chain = createInterceptorsChain(requestGetData);
-    // 请求链执行
+
     while (chain.length) {
       promise = promise.then(chain.shift(), chain.shift());
     }
@@ -146,14 +134,14 @@ class AxiosShell {
 
 // 增加请求方法
 const httpMethods = ['get', 'post', 'head', 'options', 'put', 'delete', 'trace', 'connect'] as const;
-type HttpMethod = typeof httpMethods[number];
 
 httpMethods.forEach(method => {
-  (AxiosShell.prototype as Record<string, unknown>)[method] = function createRequest(url = '', data = {}, config?: RequestConfig): Promise<unknown> {
-    const nextConfig = deepMerge(config, { url, data, method });
+  AxiosShell.prototype[method] = function createRequest(url = '', data = {}, config?: RequestConfig): Promise<unknown> {
+    const nextConfig = deepMerge(config, { url, data, method }) as RequestConfig;
     return this.requestWithInterceptors(nextConfig);
   };
 });
 
 const axiosShell = new AxiosShell();
 export default axiosShell;
+export { AxiosShell, RequestConfig };
