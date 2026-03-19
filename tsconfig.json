@@ -12,6 +12,8 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "outDir": "lib",
+    "declaration": true,
+    "declarationDir": "lib",
     "allowJs": true,
     "noUnusedLocals": false,
     "noUnusedParameters": true,
