@@ -21,7 +21,7 @@ export function deepMerge<T extends Record<string, unknown>>(...objList: (T | un
         if (isPlainObject(resValue) && isPlainObject(propValue)) {
           res[key] = deepMerge(resValue, propValue as Record<string, unknown>) as T[Extract<keyof T, string>]
         } else if (isPlainObject(propValue)) {
-          res[key] = deepMerge({}, propValue) as T[Extract<keyof T, string>]
+          res[key] = deepMerge({} as Record<string, unknown>, propValue) as T[Extract<keyof T, string>]
         } else {
           res[key] = propValue
         }

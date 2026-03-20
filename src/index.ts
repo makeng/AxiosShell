@@ -16,16 +16,6 @@ export class AxiosShell {
     response: InterceptorManager<unknown>;
   };
 
-  // HTTP 方法声明
-  get!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  post!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  head!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  options!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  put!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  delete!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  trace!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-  connect!: (url?: string, data?: Record<string, unknown>, config?: RequestConfig) => Promise<unknown>;
-
   constructor(instanceConfig: RequestConfig = {}) {
     const { adapter } = instanceConfig;
 
@@ -59,6 +49,70 @@ export class AxiosShell {
   }
 
   /**
+   * 通用请求方法
+   */
+  request(method: string, url = '', data = {}, config?: RequestConfig): Promise<unknown> {
+    const nextConfig = deepMerge(config, { url, data, method }) as RequestConfig;
+    return this.requestWithInterceptors(nextConfig);
+  }
+
+  /**
+   * GET 请求
+   */
+  get(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('get', url, data, config);
+  }
+
+  /**
+   * POST 请求
+   */
+  post(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('post', url, data, config);
+  }
+
+  /**
+   * PUT 请求
+   */
+  put(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('put', url, data, config);
+  }
+
+  /**
+   * DELETE 请求
+   */
+  delete(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('delete', url, data, config);
+  }
+
+  /**
+   * HEAD 请求
+   */
+  head(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('head', url, data, config);
+  }
+
+  /**
+   * OPTIONS 请求
+   */
+  options(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('options', url, data, config);
+  }
+
+  /**
+   * TRACE 请求
+   */
+  trace(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('trace', url, data, config);
+  }
+
+  /**
+   * CONNECT 请求
+   */
+  connect(url?: string, data?: Record<string, unknown>, config?: RequestConfig): Promise<unknown> {
+    return this.request('connect', url, data, config);
+  }
+
+  /**
    * 带拦截器的请求
    * @param config
    */
@@ -75,8 +129,10 @@ export class AxiosShell {
       const createTimeoutPromise = (timeout: number) =>
         new Promise<never>((_, reject) => {
           setTimeout(() => {
-            const timeoutError = AxiosError.createTimeoutError(timeout, mergedConfig);
-            reject(timeoutError);
+            reject(new AxiosError(`timeout of ${timeout}ms exceeded`, {
+              code: 'ECONNABORTED',
+              config: mergedConfig,
+            }));
           }, timeout);
         });
       return Promise.race([adapterPromise, createTimeoutPromise(countdown)]);
@@ -159,11 +215,9 @@ export class AxiosShell {
         // 验证状态码
         const validateStatus = mergedConfig.validateStatus ?? AxiosShell.defaultValidateStatus;
         if (!validateStatus(axiosResponse.status)) {
-          throw AxiosError.createResponseError(
+          throw new AxiosError(
             `Request failed with status code ${axiosResponse.status}`,
-            mergedConfig,
-            undefined,
-            axiosResponse
+            { code: 'ERR_BAD_RESPONSE', config: mergedConfig, response: axiosResponse }
           );
         }
 
@@ -175,18 +229,15 @@ export class AxiosShell {
         }
 
         // 将普通错误转换为 AxiosError
-        const axiosError = AxiosError.createNetworkError(
+        return Promise.reject(new AxiosError(
           error instanceof Error ? error.message : 'Network Error',
-          mergedConfig,
-          undefined,
-          error instanceof Error ? error : undefined
-        );
-        return Promise.reject(axiosError);
+          { code: 'ERR_NETWORK', config: mergedConfig, cause: error }
+        ));
       });
     };
 
     const { timeout } = mergedConfig;
-    let requestGetData = createRequest;
+    let requestGetData: () => Promise<unknown> = createRequest;
 
     // 添加超时竞速
     if (timeout) {
@@ -209,16 +260,6 @@ export class AxiosShell {
     return promise;
   }
 }
-
-// 增加请求方法
-const httpMethods = ['get', 'post', 'head', 'options', 'put', 'delete', 'trace', 'connect'] as const;
-
-httpMethods.forEach(method => {
-  AxiosShell.prototype[method] = function createRequest(url = '', data = {}, config?: RequestConfig): Promise<unknown> {
-    const nextConfig = deepMerge(config, { url, data, method }) as RequestConfig;
-    return this.requestWithInterceptors(nextConfig);
-  };
-});
 
 const axiosShell = new AxiosShell();
 export default axiosShell;

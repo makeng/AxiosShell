@@ -28,35 +28,41 @@ export interface AxiosResponse<T = unknown> {
   config: RequestConfig;
 }
 
+// 构造函数选项
+export interface AxiosErrorOptions<T = unknown> {
+  code: AxiosErrorCode | null;
+  config: RequestConfig;
+  request?: unknown;
+  response?: AxiosResponse<T>;
+  cause?: unknown;
+}
+
+/**
+ * Axios 风格的错误类
+ * - 使用 Options 对象构造（2024-2026 TS 标准）
+ * - 利用原生 ES2022 cause 支持错误链
+ */
 export class AxiosError<T = unknown> extends Error {
   code: AxiosErrorCode | null;
   config: RequestConfig;
   request?: unknown;
   response?: AxiosResponse<T>;
-  cause?: Error;
 
-  constructor(
-    message: string,
-    code: AxiosErrorCode | null,
-    config: RequestConfig,
-    request?: unknown,
-    response?: AxiosResponse<T>,
-    cause?: Error
-  ) {
-    super(message);
+  constructor(message: string, options: AxiosErrorOptions<T>) {
+    // ES2022 原生 Error cause 支持，Chrome DevTools 可见完整错误链
+    super(message, { cause: options.cause });
     this.name = 'AxiosError';
-    this.code = code;
-    this.config = config;
-    this.request = request;
-    this.response = response;
-    this.cause = cause;
+    this.code = options.code;
+    this.config = options.config;
+    this.request = options.request;
+    this.response = options.response;
 
     // 确保 instanceof 正常工作
     Object.setPrototypeOf(this, AxiosError.prototype);
   }
 
   /**
-   * 判断是否为 AxiosError
+   * 类型守卫：判断是否为 AxiosError
    */
   static isAxiosError<T = unknown>(payload: unknown): payload is AxiosError<T> {
     return payload instanceof AxiosError || (
@@ -64,46 +70,5 @@ export class AxiosError<T = unknown> extends Error {
       payload !== null &&
       (payload as Record<string, unknown>).name === 'AxiosError'
     );
-  }
-
-  /**
-   * 创建超时错误
-   */
-  static createTimeoutError(timeout: number, config: RequestConfig, request?: unknown): AxiosError {
-    const message = `timeout of ${timeout}ms exceeded`;
-    return new AxiosError(message, 'ECONNABORTED', config, request, undefined);
-  }
-
-  /**
-   * 创建网络错误
-   */
-  static createNetworkError(message: string, config: RequestConfig, request?: unknown, cause?: Error): AxiosError {
-    return new AxiosError(message, 'ERR_NETWORK', config, request, undefined, cause);
-  }
-
-  /**
-   * 创建响应错误（HTTP 错误状态码）
-   */
-  static createResponseError<T>(
-    message: string,
-    config: RequestConfig,
-    request: unknown,
-    response: AxiosResponse<T>
-  ): AxiosError<T> {
-    return new AxiosError(message, 'ERR_BAD_RESPONSE', config, request, response);
-  }
-
-  /**
-   * 创建请求错误
-   */
-  static createRequestError(message: string, config: RequestConfig, request?: unknown, cause?: Error): AxiosError {
-    return new AxiosError(message, 'ERR_BAD_REQUEST', config, request, undefined, cause);
-  }
-
-  /**
-   * 创建取消错误
-   */
-  static createCancelError(message: string, config: RequestConfig, request?: unknown): AxiosError {
-    return new AxiosError(message, 'ERR_CANCELED', config, request);
   }
 }

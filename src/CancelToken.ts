@@ -5,15 +5,16 @@
 import { RequestConfig } from '@/types';
 import { AxiosError } from '@/AxiosError';
 
-// 取消器接口
-export interface CancelExecutor {
-  (message?: string): void;
-}
+// 取消回调函数（用户调用以取消请求）
+export type Cancel = (message?: string) => void;
+
+// 取消器执行函数（构造函数参数）
+export type CancelExecutor = (cancel: Cancel) => void;
 
 // 取消源接口
 export interface CancelSource {
   token: CancelToken;
-  cancel: CancelExecutor;
+  cancel: Cancel;
 }
 
 // 取消监听器
@@ -43,16 +44,16 @@ export class CancelToken {
     }
 
     // 执行取消器，传入取消回调
-    executor(message => {
+    executor((message?: string) => {
       if (this._reason) {
         // 已经取消过了
         return;
       }
 
       // 创建取消错误
-      this._reason = AxiosError.createCancelError(
+      this._reason = new AxiosError(
         message || 'Request canceled',
-        {} as RequestConfig
+        { code: 'ERR_CANCELED', config: {} as RequestConfig }
       );
 
       // 触发 AbortController
@@ -126,7 +127,7 @@ export class CancelToken {
    * source.cancel('Operation canceled by user');
    */
   static source(): CancelSource {
-    let cancel: CancelExecutor;
+    let cancel: Cancel | undefined;
 
     const token = new CancelToken(c => {
       cancel = c;
