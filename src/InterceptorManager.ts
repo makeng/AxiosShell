@@ -19,7 +19,7 @@ export default class InterceptorManager<V = unknown> {
    * @param fn
    */
   forEach(fn: (h: InterceptorHandler<V>) => void): void {
-    this.handlers.forEach(function(h) {
+    this.handlers.forEach(h => {
       if (h) {
         fn(h);
       }

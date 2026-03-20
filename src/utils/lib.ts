@@ -9,15 +9,15 @@ export function isObject(x: unknown): x is Record<string, unknown> {
 }
 
 export function isArray<T = unknown>(x: unknown): x is T[] {
-  return toString.call(x) === '[object Array]';
+  return Array.isArray(x);
 }
 
 export function isString(x: unknown): x is string {
-  return !!x && toString.call(x) === '[object String]';
+  return typeof x === 'string';
 }
 
 export function isFunction(x: unknown): x is (...args: unknown[]) => unknown {
-  return toString.call(x) === '[object Function]';
+  return typeof x === 'function';
 }
 
 /**

@@ -26,9 +26,9 @@ type CancelListener = (cancel: AxiosError) => void;
  * - 支持 AbortController 集成（如果环境支持）
  */
 export class CancelToken {
-  private _reason: AxiosError | null = null;
-  private _listeners: CancelListener[] = [];
-  private _abortController: AbortController | null = null;
+  #reason: AxiosError | null = null;
+  #listeners: CancelListener[] = [];
+  #abortController: AbortController | null = null;
 
   constructor(executor: CancelExecutor) {
     let resolvePromise: (cancel: AxiosError) => void;
@@ -40,32 +40,30 @@ export class CancelToken {
 
     // 尝试创建 AbortController（如果环境支持）
     if (typeof AbortController !== 'undefined') {
-      this._abortController = new AbortController();
+      this.#abortController = new AbortController();
     }
 
     // 执行取消器，传入取消回调
     executor((message?: string) => {
-      if (this._reason) {
+      if (this.#reason) {
         // 已经取消过了
         return;
       }
 
       // 创建取消错误
-      this._reason = new AxiosError(
+      this.#reason = new AxiosError(
         message || 'Request canceled',
         { code: 'ERR_CANCELED', config: {} as RequestConfig }
       );
 
       // 触发 AbortController
-      if (this._abortController) {
-        this._abortController.abort();
-      }
+      this.#abortController?.abort();
 
       // 通知所有监听器
-      this._listeners.forEach(listener => listener(this._reason!));
+      this.#listeners.forEach(listener => listener(this.#reason!));
 
       // resolve Promise
-      resolvePromise(this._reason);
+      resolvePromise(this.#reason);
     });
   }
 
@@ -73,39 +71,39 @@ export class CancelToken {
    * 获取取消原因
    */
   get reason(): AxiosError | null {
-    return this._reason;
+    return this.#reason;
   }
 
   /**
    * 判断是否已取消
    */
   get isCancelled(): boolean {
-    return this._reason !== null;
+    return this.#reason !== null;
   }
 
   /**
    * 获取 AbortSignal（如果支持）
    */
   get signal(): AbortSignal | null {
-    return this._abortController?.signal ?? null;
+    return this.#abortController?.signal ?? null;
   }
 
   /**
    * 订阅取消事件
    */
   subscribe(listener: CancelListener): () => void {
-    this._listeners.push(listener);
+    this.#listeners.push(listener);
 
     // 如果已经取消，立即触发
-    if (this._reason) {
-      listener(this._reason);
+    if (this.#reason) {
+      listener(this.#reason);
     }
 
     // 返回取消订阅函数
     return () => {
-      const index = this._listeners.indexOf(listener);
+      const index = this.#listeners.indexOf(listener);
       if (index !== -1) {
-        this._listeners.splice(index, 1);
+        this.#listeners.splice(index, 1);
       }
     };
   }
@@ -114,8 +112,8 @@ export class CancelToken {
    * 如果已取消，抛出取消错误
    */
   throwIfRequested(): void {
-    if (this._reason) {
-      throw this._reason;
+    if (this.#reason) {
+      throw this.#reason;
     }
   }
 

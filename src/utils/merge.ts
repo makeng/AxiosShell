@@ -14,7 +14,7 @@ export function deepMerge<T extends Record<string, unknown>>(...objList: (T | un
   function assignValue(obj: T | undefined | null): void {
     if (!obj) return
     for (const key in obj) {
-      if (Object.prototype.hasOwnProperty.call(obj, key)) {
+      if (Object.hasOwn(obj, key)) {
         const propValue = obj[key]
         const resValue = res[key]
         // 只有普通对象才进行深度合并，类实例直接引用
