@@ -3,7 +3,7 @@
 * ---------------------------------------------------------------------------------------- */
 
 import { describe, it, expect } from 'vitest';
-import axiosShell, { AxiosResponse } from '../../src/index';
+import axiosShell, { AxiosResponse } from '@/index';
 
 interface HilinkConfig {
   domain: string;

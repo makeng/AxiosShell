@@ -4,11 +4,19 @@
   "author": "mazhaokeng",
   "version": "0.1.0",
   "private": true,
-  "type": "commonjs",
-  "main": "lib/index.js",
+  "type": "module",
+  "main": "lib/index.cjs",
+  "module": "lib/index.js",
   "types": "lib/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./lib/index.js",
+      "require": "./lib/index.cjs",
+      "types": "./lib/index.d.ts"
+    }
+  },
   "scripts": {
-    "build": "tsc",
+    "build": "tsup src/index.ts --format esm,cjs --dts --clean --out-dir lib",
     "prepare": "npm run build",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -26,6 +34,7 @@
   "license": "ISC",
   "devDependencies": {
     "@types/node": "^25.5.0",
+    "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "vitest": "^4.1.0"
