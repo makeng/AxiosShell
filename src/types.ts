@@ -2,6 +2,8 @@
  * about:共享类型定义
  * ---------------------------------------------------------------------------------------- */
 
+import type { CancelToken } from '@/CancelToken';
+
 // 状态码验证函数类型
 export type ValidateStatus = (status: number) => boolean;
 
@@ -16,4 +18,7 @@ export interface RequestConfig extends Record<string, unknown> {
   timeout?: number;
   adapter?: (config: RequestConfig) => Promise<unknown>;
   validateStatus?: ValidateStatus;
+  // 取消相关
+  cancelToken?: CancelToken;
+  signal?: AbortSignal;
 }

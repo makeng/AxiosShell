@@ -99,4 +99,11 @@ export class AxiosError<T = unknown> extends Error {
   static createRequestError(message: string, config: RequestConfig, request?: unknown, cause?: Error): AxiosError {
     return new AxiosError(message, 'ERR_BAD_REQUEST', config, request, undefined, cause);
   }
+
+  /**
+   * 创建取消错误
+   */
+  static createCancelError(message: string, config: RequestConfig, request?: unknown): AxiosError {
+    return new AxiosError(message, 'ERR_CANCELED', config, request);
+  }
 }

@@ -2,7 +2,7 @@
  * about:方法的绑定和处理
  * ---------------------------------------------------------------------------------------- */
 
-import { isObject } from '@/utils/lib'
+import { isPlainObject } from '@/utils/lib'
 
 /**
  * 深合并
@@ -17,11 +17,11 @@ export function deepMerge<T extends Record<string, unknown>>(...objList: (T | un
       if (Object.prototype.hasOwnProperty.call(obj, key)) {
         const propValue = obj[key]
         const resValue = res[key]
-        // 按照类型选择往下合并还是赋值
-        if (isObject(resValue) && isObject(propValue)) {
-          res[key] = deepMerge(resValue as Record<string, unknown>, propValue as Record<string, unknown>) as T[Extract<keyof T, string>]
-        } else if (isObject(propValue)) {
-          res[key] = deepMerge({}, propValue as Record<string, unknown>) as T[Extract<keyof T, string>]
+        // 只有普通对象才进行深度合并，类实例直接引用
+        if (isPlainObject(resValue) && isPlainObject(propValue)) {
+          res[key] = deepMerge(resValue, propValue as Record<string, unknown>) as T[Extract<keyof T, string>]
+        } else if (isPlainObject(propValue)) {
+          res[key] = deepMerge({}, propValue) as T[Extract<keyof T, string>]
         } else {
           res[key] = propValue
         }

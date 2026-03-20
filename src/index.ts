@@ -6,6 +6,7 @@ import InterceptorManager, { InterceptorHandler } from '@/InterceptorManager';
 import { deepMerge } from '@/utils/merge';
 import { AxiosError, AxiosResponse } from '@/AxiosError';
 import { RequestConfig, ValidateStatus } from '@/types';
+import { CancelToken } from '@/CancelToken';
 
 export class AxiosShell {
   adapter!: (config: RequestConfig) => Promise<unknown>;
@@ -63,6 +64,12 @@ export class AxiosShell {
    */
   requestWithInterceptors(config: RequestConfig): Promise<unknown> {
     const mergedConfig = deepMerge(this.defaults, config) as RequestConfig;
+    const { cancelToken, signal } = mergedConfig;
+
+    // 检查是否已取消
+    if (cancelToken) {
+      cancelToken.throwIfRequested();
+    }
 
     const createTimeoutRace = (adapterPromise: Promise<unknown>, countdown: number) => {
       const createTimeoutPromise = (timeout: number) =>
@@ -73,6 +80,20 @@ export class AxiosShell {
           }, timeout);
         });
       return Promise.race([adapterPromise, createTimeoutPromise(countdown)]);
+    };
+
+    const createCancelRace = (adapterPromise: Promise<unknown>) => {
+      if (!cancelToken) {
+        return adapterPromise;
+      }
+
+      const cancelPromise = new Promise<never>((_, reject) => {
+        cancelToken.subscribe((cancelError) => {
+          reject(cancelError);
+        });
+      });
+
+      return Promise.race([adapterPromise, cancelPromise]);
     };
 
     const createInterceptorsChain = (middle: () => Promise<unknown>) => {
@@ -97,61 +118,87 @@ export class AxiosShell {
     };
 
     // 核心请求，使用 AxiosError 封装错误
-    const createRequest = () => this.adapter(mergedConfig).then(response => {
-      // 将响应包装为 AxiosResponse 格式
-      let axiosResponse: AxiosResponse;
-
-      if (typeof response === 'object' && response !== null) {
-        const responseObj = response as Record<string, unknown>;
-        axiosResponse = {
-          data: responseObj.data ?? response,
-          status: (responseObj.status as number) ?? 200,
-          statusText: (responseObj.statusText as string) ?? 'OK',
-          headers: (responseObj.headers as Record<string, string>) ?? {},
-          config: mergedConfig,
-        };
-      } else {
-        axiosResponse = {
-          data: response,
-          status: 200,
-          statusText: 'OK',
-          headers: {},
-          config: mergedConfig,
-        };
+    const createRequest = () => {
+      // 将 signal 传递给 adapter（如果支持）
+      if (signal && !mergedConfig.signal) {
+        mergedConfig.signal = signal;
+      }
+      // 如果 cancelToken 有 AbortSignal，也传递给 adapter
+      if (cancelToken?.signal && !mergedConfig.signal) {
+        mergedConfig.signal = cancelToken.signal;
       }
 
-      // 验证状态码
-      const validateStatus = mergedConfig.validateStatus ?? AxiosShell.defaultValidateStatus;
-      if (!validateStatus(axiosResponse.status)) {
-        throw AxiosError.createResponseError(
-          `Request failed with status code ${axiosResponse.status}`,
+      return this.adapter(mergedConfig).then(response => {
+        // 请求完成后检查是否已取消（防止竞态）
+        if (cancelToken?.isCancelled) {
+          throw cancelToken.reason!;
+        }
+
+        // 将响应包装为 AxiosResponse 格式
+        let axiosResponse: AxiosResponse;
+
+        if (typeof response === 'object' && response !== null) {
+          const responseObj = response as Record<string, unknown>;
+          axiosResponse = {
+            data: responseObj.data ?? response,
+            status: (responseObj.status as number) ?? 200,
+            statusText: (responseObj.statusText as string) ?? 'OK',
+            headers: (responseObj.headers as Record<string, string>) ?? {},
+            config: mergedConfig,
+          };
+        } else {
+          axiosResponse = {
+            data: response,
+            status: 200,
+            statusText: 'OK',
+            headers: {},
+            config: mergedConfig,
+          };
+        }
+
+        // 验证状态码
+        const validateStatus = mergedConfig.validateStatus ?? AxiosShell.defaultValidateStatus;
+        if (!validateStatus(axiosResponse.status)) {
+          throw AxiosError.createResponseError(
+            `Request failed with status code ${axiosResponse.status}`,
+            mergedConfig,
+            undefined,
+            axiosResponse
+          );
+        }
+
+        return axiosResponse;
+      }).catch(error => {
+        // 如果已经是 AxiosError，直接抛出
+        if (AxiosError.isAxiosError(error)) {
+          return Promise.reject(error);
+        }
+
+        // 将普通错误转换为 AxiosError
+        const axiosError = AxiosError.createNetworkError(
+          error instanceof Error ? error.message : 'Network Error',
           mergedConfig,
           undefined,
-          axiosResponse
+          error instanceof Error ? error : undefined
         );
-      }
-
-      return axiosResponse;
-    }).catch(error => {
-      // 如果已经是 AxiosError，直接抛出
-      if (AxiosError.isAxiosError(error)) {
-        return Promise.reject(error);
-      }
-
-      // 将普通错误转换为 AxiosError
-      const axiosError = AxiosError.createNetworkError(
-        error instanceof Error ? error.message : 'Network Error',
-        mergedConfig,
-        undefined,
-        error instanceof Error ? error : undefined
-      );
-      return Promise.reject(axiosError);
-    });
+        return Promise.reject(axiosError);
+      });
+    };
 
     const { timeout } = mergedConfig;
-    const requestGetData = timeout
-      ? () => createTimeoutRace(createRequest(), timeout as number)
-      : createRequest;
+    let requestGetData = createRequest;
+
+    // 添加超时竞速
+    if (timeout) {
+      const originalRequest = requestGetData;
+      requestGetData = () => createTimeoutRace(originalRequest(), timeout as number);
+    }
+
+    // 添加取消竞速
+    if (cancelToken) {
+      const originalRequest = requestGetData;
+      requestGetData = () => createCancelRace(originalRequest());
+    }
 
     let promise: Promise<unknown> = Promise.resolve(mergedConfig);
     const chain = createInterceptorsChain(requestGetData);
@@ -177,3 +224,4 @@ const axiosShell = new AxiosShell();
 export default axiosShell;
 export { RequestConfig, ValidateStatus } from '@/types';
 export { AxiosError, AxiosResponse } from '@/AxiosError';
+export { CancelToken } from '@/CancelToken';

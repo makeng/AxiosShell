@@ -55,6 +55,65 @@ instance.interceptors.request.use(config => {
 const data = await instance.get('/users');
 ```
 
+### 请求取消
+
+AxiosShell 支持两种取消请求的方式：
+
+#### 方式一：CancelToken（Axios 风格）
+
+```typescript
+import axiosShell, { CancelToken } from 'axios-shell';
+
+const instance = axiosShell.create({
+  adapter: (config) => fetch(config.url!).then(res => res.json())
+});
+
+// 创建取消源
+const source = CancelToken.source();
+
+// 发起请求时传入 cancelToken
+instance.get('/users', {}, { cancelToken: source.token })
+  .catch(err => {
+    if (err.code === 'ERR_CANCELED') {
+      console.log('请求被取消:', err.message);
+    }
+  });
+
+// 取消请求
+source.cancel('用户取消了请求');
+```
+
+#### 方式二：AbortSignal（现代标准）
+
+```typescript
+import axiosShell from 'axios-shell';
+
+const controller = new AbortController();
+
+const instance = axiosShell.create({
+  adapter: (config) => fetch(config.url!, { signal: config.signal }).then(res => res.json())
+});
+
+// 发起请求时传入 signal
+instance.get('/users', {}, { signal: controller.signal })
+  .catch(err => {
+    if (err.code === 'ERR_CANCELED') {
+      console.log('请求被取消');
+    }
+  });
+
+// 取消请求
+controller.abort();
+```
+
+#### 关于「软取消」
+
+对于没有 AbortController API 的环境（如华为小圆、快应用），CancelToken 采用「软取消」策略：
+- **无法真正取消已发出的网络请求**
+- **忽略响应**：请求完成时不处理返回的数据
+- **抛出取消错误**：让调用方知道请求被取消
+
+
 ### 功能对比
 
 AxiosShell 设计基于 Axios API，移除了 HTTP 请求引擎部分，通过 `adapter` 属性接入任意 fetch 实现。
@@ -79,7 +138,7 @@ AxiosShell 设计基于 Axios API，移除了 HTTP 请求引擎部分，通过 `
 | 请求错误 (ERR_BAD_REQUEST) | ✅ | ✅ | 请求错误识别 |
 | **高级功能** |
 | 自定义 adapter | ✅ | ✅ | **核心特性**，可接入任意 fetch 实现 |
-| 请求取消 (CancelToken) | ✅ | ❌ | 暂未实现 |
+| 请求取消 (CancelToken) | ✅ | ✅ | 支持 CancelToken 和 AbortSignal |
 | 自动转换请求/响应数据 | ✅ | ❌ | 需通过拦截器或 adapter 自行实现 |
 | 自动处理 XSRF/CSRF | ✅ | ❌ | 需自行实现 |
 | 进度监控 (onUploadProgress) | ✅ | ❌ | 依赖 XMLHttpRequest，fetch 不支持 |
