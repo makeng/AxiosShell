@@ -1,4 +1,4 @@
-# utils-axiosShell-js
+# AxiosShell
 
 ### 简介
 
@@ -54,6 +54,37 @@ instance.interceptors.request.use(config => {
 // 发起请求
 const data = await instance.get('/users');
 ```
+
+### 功能对比
+
+AxiosShell 设计基于 Axios API，移除了 HTTP 请求引擎部分，通过 `adapter` 属性接入任意 fetch 实现。
+
+| 功能特性 | Axios | AxiosShell | 说明 |
+|---------|-------|------------|------|
+| **核心请求** |
+| GET / POST / PUT / DELETE 等 HTTP 方法 | ✅ | ✅ | 支持所有标准 HTTP 方法 |
+| 实例化 (create) | ✅ | ✅ | 支持创建实例和全局配置 |
+| 请求/响应拦截器 | ✅ | ✅ | 支持添加、删除、清空拦截器 |
+| 超时控制 (timeout) | ✅ | ✅ | 支持请求超时设置 |
+| baseURL 配置 | ✅ | ✅ | 支持基础 URL 前缀 |
+| headers 配置 | ✅ | ✅ | 支持自定义请求头 |
+| params 参数 | ✅ | ✅ | 支持 URL 查询参数 |
+| data 请求体 | ✅ | ✅ | 支持请求体数据 |
+| validateStatus | ✅ | ✅ | 支持自定义状态码验证 |
+| **错误处理** |
+| AxiosError 错误类 | ✅ | ✅ | 统一的错误封装 |
+| 超时错误 (ECONNABORTED) | ✅ | ✅ | 超时错误识别 |
+| 网络错误 (ERR_NETWORK) | ✅ | ✅ | 网络错误识别 |
+| 响应错误 (ERR_BAD_RESPONSE) | ✅ | ✅ | HTTP 错误状态码处理 |
+| 请求错误 (ERR_BAD_REQUEST) | ✅ | ✅ | 请求错误识别 |
+| **高级功能** |
+| 自定义 adapter | ✅ | ✅ | **核心特性**，可接入任意 fetch 实现 |
+| 请求取消 (CancelToken) | ✅ | ❌ | 暂未实现 |
+| 自动转换请求/响应数据 | ✅ | ❌ | 需通过拦截器或 adapter 自行实现 |
+| 自动处理 XSRF/CSRF | ✅ | ❌ | 需自行实现 |
+| 进度监控 (onUploadProgress) | ✅ | ❌ | 依赖 XMLHttpRequest，fetch 不支持 |
+| 代理配置 (proxy) | ✅ | ❌ | 需通过 adapter 实现 |
+| 并发请求 (all / spread) | ✅ | ❌ | 可使用 Promise.all 替代 |
 
 ### 开发说明
 
