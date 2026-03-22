@@ -1,0 +1,42 @@
+sequenceDiagram
+    participant Client
+    participant AxiosShell
+    participant ReqInterceptor
+    participant Adapter
+    participant ResInterceptor
+    participant Timeout
+    participant CancelToken
+
+    Client->>AxiosShell: request(config)
+    
+    Note over AxiosShell: 拦截器链构建
+    AxiosShell->>ReqInterceptor: 执行请求拦截器
+    ReqInterceptor-->>AxiosShell: 修改后的 config
+
+    Note over AxiosShell: 请求执行
+    AxiosShell->>CancelToken: throwIfRequested
+    CancelToken-->>AxiosShell: 检查是否已取消
+    
+    AxiosShell->>Adapter: adapter(config)
+    
+    par 超时控制
+        Timeout->>Timeout: setTimeout
+        Timeout-->>AxiosShell: 超时错误
+    and 请求执行
+        Adapter-->>AxiosShell: response
+    end
+    
+    CancelToken->>CancelToken: isCancelled检查
+
+    Note over AxiosShell: 响应处理
+    AxiosShell->>AxiosShell: 包装为 AxiosResponse
+    AxiosShell->>AxiosShell: validateStatus
+    AxiosShell->>ResInterceptor: 执行响应拦截器
+    ResInterceptor-->>AxiosShell: 处理后的 response
+
+    AxiosShell-->>Client: Promise
+
+    alt 错误处理
+        AxiosShell->>AxiosShell: catch error
+        AxiosShell-->>Client: reject AxiosError
+    end

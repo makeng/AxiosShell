@@ -1,0 +1,94 @@
+classDiagram
+    class AxiosShell {
+        +adapter
+        +defaults
+        +interceptors
+        +constructor(config)
+        +create(config)
+        +request(method, url, data, config)
+        +get(url, data, config)
+        +post(url, data, config)
+        +put(url, data, config)
+        +delete(url, data, config)
+        +head(url, data, config)
+        +options(url, data, config)
+        +trace(url, data, config)
+        +connect(url, data, config)
+        +requestWithInterceptors(config)
+        -defaultValidateStatus(status)
+    }
+
+    class InterceptorManager {
+        +handlers
+        +constructor()
+        +forEach(fn)
+        +use(fulfilled, rejected)
+        +eject(id)
+        +clear()
+    }
+
+    class InterceptorHandler {
+        +fulfilled
+        +rejected
+    }
+
+    class AxiosError {
+        +code
+        +config
+        +request
+        +response
+        +constructor(message, options)
+        +isAxiosError(payload)
+    }
+
+    class AxiosResponse {
+        +data
+        +status
+        +statusText
+        +headers
+        +config
+    }
+
+    class CancelToken {
+        -reason
+        -listeners
+        -abortController
+        +constructor(executor)
+        +reason
+        +isCancelled
+        +signal
+        +subscribe(listener)
+        +throwIfRequested()
+        +source()
+        +fromAbortController(controller)
+    }
+
+    class CancelSource {
+        +token
+        +cancel
+    }
+
+    class RequestConfig {
+        +url
+        +method
+        +data
+        +params
+        +headers
+        +baseURL
+        +timeout
+        +adapter
+        +validateStatus
+        +cancelToken
+        +signal
+    }
+
+    AxiosShell --> InterceptorManager : uses
+    AxiosShell --> AxiosError : uses
+    AxiosShell --> CancelToken : uses
+    AxiosShell --> RequestConfig : uses
+    InterceptorManager --> InterceptorHandler : contains
+    AxiosError --> AxiosResponse : has
+    AxiosError --> RequestConfig : has
+    CancelToken --> CancelSource : creates
+    CancelToken --> AxiosError : uses
+    CancelSource --> CancelToken : has
